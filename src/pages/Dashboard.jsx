@@ -48,7 +48,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Header */}
+        {}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">
             Welcome back, {user?.name}! 👋
@@ -56,7 +56,7 @@ const Dashboard = () => {
           <p className="text-gray-300">Here's your fitness progress</p>
         </div>
 
-        {/* User Stats Cards */}
+        {}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card className="bg-gradient-to-br from-purple-600 to-pink-600">
             <CardContent className="pt-6">
@@ -119,7 +119,7 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Premium Badge */}
+        {}
         {!user?.isPremium && (
           <Card className="bg-gradient-to-r from-yellow-600 to-orange-600 mb-8">
             <CardContent className="py-6">
@@ -140,7 +140,7 @@ const Dashboard = () => {
           </Card>
         )}
 
-        {/* Weekly Progress */}
+        {}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <Card>
             <CardHeader>
@@ -165,7 +165,7 @@ const Dashboard = () => {
                 </div>
                 <p className="text-gray-400 text-sm">
                   {stats.weeklyQuests >= 7 ? 
-                    '🎉 Amazing! You completed your weekly goal!' : 
+                    ' Amazing! You completed your weekly goal!' : 
                     `Complete ${7 - stats.weeklyQuests} more quests to reach your weekly goal`
                   }
                 </p>
@@ -209,7 +209,7 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Recent Activity */}
+        {}
         <Card className="mt-8">
           <CardHeader>
             <CardTitle className="flex items-center">
