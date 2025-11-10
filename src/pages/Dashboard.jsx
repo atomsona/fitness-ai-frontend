@@ -21,9 +21,18 @@ const Dashboard = () => {
   const fetchProgress = async () => {
     try {
       const { data } = await api.get('/quests/progress');
-      setProgress(data);
-      
-      const completed = data.filter(p => p.status === 'completed');
+      console.log('Progress API response:', data);
+
+      // ✅ Ensure data is always an array
+      const progressArray = Array.isArray(data)
+        ? data
+        : Array.isArray(data.progress)
+        ? data.progress
+        : [];
+
+      setProgress(progressArray);
+
+      const completed = progressArray.filter(p => p.status === 'completed');
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
       const weeklyCompleted = completed.filter(
@@ -31,12 +40,13 @@ const Dashboard = () => {
       );
 
       setStats({
-        totalQuests: data.length,
+        totalQuests: progressArray.length,
         completedQuests: completed.length,
         weeklyQuests: weeklyCompleted.length
       });
     } catch (error) {
       console.error('Error fetching progress:', error);
+      setProgress([]);
     } finally {
       setLoading(false);
     }
@@ -48,7 +58,8 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {}
+        
+        {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">
             Welcome back, {user?.name}! 👋
@@ -56,7 +67,7 @@ const Dashboard = () => {
           <p className="text-gray-300">Here's your fitness progress</p>
         </div>
 
-        {}
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card className="bg-gradient-to-br from-purple-600 to-pink-600">
             <CardContent className="pt-6">
@@ -119,7 +130,7 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {}
+        {/* Premium Section */}
         {!user?.isPremium && (
           <Card className="bg-gradient-to-r from-yellow-600 to-orange-600 mb-8">
             <CardContent className="py-6">
@@ -140,7 +151,7 @@ const Dashboard = () => {
           </Card>
         )}
 
-        {}
+        {/* Weekly Progress + Achievements */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <Card>
             <CardHeader>
@@ -209,7 +220,7 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {}
+        {/* Recent Activity */}
         <Card className="mt-8">
           <CardHeader>
             <CardTitle className="flex items-center">

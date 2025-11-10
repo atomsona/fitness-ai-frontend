@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUser = async () => {
     try {
-      const { data } = await api.get('/auth/me');
+      const { data } = await api.get('/auth');
       setUser(data);
     } catch (error) {
       clearAccessToken();
