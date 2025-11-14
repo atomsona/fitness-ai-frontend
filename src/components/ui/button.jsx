@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
 
-const Button = React.forwardRef(({ className, variant = 'default', size = 'default', ...props }, ref) => {
+const Button = React.forwardRef(({ className, variant = 'default', size = 'default', children, ...props }, ref) => {
   const variants = {
     default: 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:shadow-lg hover:shadow-purple-500/50',
     outline: 'border border-white border-opacity-30 bg-white bg-opacity-10 hover:bg-opacity-20',
@@ -24,7 +24,9 @@ const Button = React.forwardRef(({ className, variant = 'default', size = 'defau
         className
       )}
       {...props}
-    />
+    >
+      {children}
+    </button>
   );
 });
 
