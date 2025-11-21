@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
 import Navbar from './components/Navbar.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
@@ -13,6 +13,44 @@ import Quests from './pages/Quests.jsx';
 import Profile from './pages/Profile.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
 
+// Auth Success Handler - Fixed to properly handle Google OAuth redirect
+const AuthSuccess = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    const handleAuthSuccess = async () => {
+      const params = new URLSearchParams(location.search);
+      const token = params.get('token');
+      
+      if (token) {
+        // Save token
+        localStorage.setItem('accessToken', token);
+        
+        // Small delay to ensure token is saved
+        setTimeout(() => {
+          // Redirect to dashboard
+          window.location.href = '/dashboard';
+        }, 100);
+      } else {
+        // No token, redirect to login
+        navigate('/login');
+      }
+    };
+
+    handleAuthSuccess();
+  }, [location, navigate]);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 flex items-center justify-center">
+      <div className="text-white text-xl">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+        Completing login...
+      </div>
+    </div>
+  );
+};
+
 function App() {
   return (
     <Router>
@@ -23,6 +61,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/auth-success" element={<AuthSuccess />} />
             
             <Route path="/dashboard" element={
               <ProtectedRoute>

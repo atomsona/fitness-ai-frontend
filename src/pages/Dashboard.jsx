@@ -21,32 +21,31 @@ const Dashboard = () => {
   const fetchProgress = async () => {
     try {
       const { data } = await api.get('/quests/progress');
-      console.log('Progress API response:', data);
-
-      // ✅ Ensure data is always an array
-      const progressArray = Array.isArray(data)
-        ? data
-        : Array.isArray(data.progress)
-        ? data.progress
-        : [];
-
-      setProgress(progressArray);
-
-      const completed = progressArray.filter(p => p.status === 'completed');
+      
+      // FIXED: Handle different response formats
+      const progressData = Array.isArray(data) ? data : [];
+      setProgress(progressData);
+      
+      const completed = progressData.filter(p => p.status === 'completed');
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
       const weeklyCompleted = completed.filter(
-        p => new Date(p.completedAt) >= weekAgo
+        p => p.completedAt && new Date(p.completedAt) >= weekAgo
       );
 
       setStats({
-        totalQuests: progressArray.length,
+        totalQuests: progressData.length,
         completedQuests: completed.length,
         weeklyQuests: weeklyCompleted.length
       });
     } catch (error) {
       console.error('Error fetching progress:', error);
       setProgress([]);
+      setStats({
+        totalQuests: 0,
+        completedQuests: 0,
+        weeklyQuests: 0
+      });
     } finally {
       setLoading(false);
     }
@@ -58,7 +57,6 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">
@@ -67,7 +65,7 @@ const Dashboard = () => {
           <p className="text-gray-300">Here's your fitness progress</p>
         </div>
 
-        {/* Stats Cards */}
+        {/* User Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card className="bg-gradient-to-br from-purple-600 to-pink-600">
             <CardContent className="pt-6">
@@ -130,7 +128,7 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Premium Section */}
+        {/* Premium Banner */}
         {!user?.isPremium && (
           <Card className="bg-gradient-to-r from-yellow-600 to-orange-600 mb-8">
             <CardContent className="py-6">
@@ -151,7 +149,7 @@ const Dashboard = () => {
           </Card>
         )}
 
-        {/* Weekly Progress + Achievements */}
+        {/* Weekly Progress */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <Card>
             <CardHeader>
@@ -176,7 +174,7 @@ const Dashboard = () => {
                 </div>
                 <p className="text-gray-400 text-sm">
                   {stats.weeklyQuests >= 7 ? 
-                    ' Amazing! You completed your weekly goal!' : 
+                    '🎉 Amazing! You completed your weekly goal!' : 
                     `Complete ${7 - stats.weeklyQuests} more quests to reach your weekly goal`
                   }
                 </p>

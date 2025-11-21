@@ -16,6 +16,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
     if (token) {
+      setAccessToken(token);
       fetchUser();
     } else {
       setLoading(false);
@@ -24,9 +25,10 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUser = async () => {
     try {
-      const { data } = await api.get('/auth');
+      const { data } = await api.get('/auth/me');
       setUser(data);
     } catch (error) {
+      console.error('Fetch user error:', error);
       clearAccessToken();
     } finally {
       setLoading(false);
@@ -59,7 +61,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const googleLogin = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/auth/google`;
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    window.location.href = `${apiUrl}/auth/google`;
   };
 
   return (
