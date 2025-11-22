@@ -1,36 +1,56 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL;
+// Determine API URL based on environment
+const getApiUrl = () => {
+  // In production (Vercel)
+  if (import.meta.env.PROD) {
+    return import.meta.env.VITE_API_URL || 'https://fitness-ai-backend-nine.vercel.app/api';
+  }
+  // In development (localhost)
+  return 'http://localhost:5000/api';
+};
 
 const api = axios.create({
-  baseURL: API_URL,
-  withCredentials: true, // send cookies
-  headers: { 'Content-Type': 'application/json' }
+  baseURL: getApiUrl(),
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json'
+  }
 });
+
+console.log('API Base URL:', getApiUrl()); // Debug
 
 let accessToken = localStorage.getItem('accessToken');
 
-// Request interceptor: attach access token
 api.interceptors.request.use(
   (config) => {
-    if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
+    }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Response interceptor: handle 401 → refresh
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
+
       try {
-        const { data } = await axios.post(`${API_URL}/auth/refresh`, {}, { withCredentials: true });
+        const { data } = await axios.post(
+          `${getApiUrl()}/auth/refresh`,
+          {},
+          { withCredentials: true }
+        );
+
         accessToken = data.accessToken;
         localStorage.setItem('accessToken', accessToken);
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+
         return api(originalRequest);
       } catch (refreshError) {
         localStorage.removeItem('accessToken');
@@ -38,6 +58,7 @@ api.interceptors.response.use(
         return Promise.reject(refreshError);
       }
     }
+
     return Promise.reject(error);
   }
 );
