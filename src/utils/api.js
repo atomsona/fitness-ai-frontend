@@ -1,11 +1,11 @@
 import axios from 'axios';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
-  withCredentials: true, // ✅ CRITICAL: This sends cookies
-  headers: {
-    'Content-Type': 'application/json' // ✅ CRITICAL: This tells server it's JSON
-  }
+  baseURL: API_URL,
+  withCredentials: true,
+  headers: { 'Content-Type': 'application/json' },
 });
 
 let accessToken = localStorage.getItem('accessToken');
@@ -21,26 +21,18 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor
+// Response interceptor (handle 401 → refresh token)
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-
       try {
-        const { data } = await axios.post(
-          `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/auth/refresh`,
-          {},
-          { withCredentials: true } // ✅ Include credentials for refresh
-        );
-
+        const { data } = await axios.post(`${API_URL}/auth/refresh`, {}, { withCredentials: true });
         accessToken = data.accessToken;
         localStorage.setItem('accessToken', accessToken);
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-
         return api(originalRequest);
       } catch (refreshError) {
         localStorage.removeItem('accessToken');
@@ -48,7 +40,6 @@ api.interceptors.response.use(
         return Promise.reject(refreshError);
       }
     }
-
     return Promise.reject(error);
   }
 );

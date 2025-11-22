@@ -1,83 +1,37 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext } from 'react';
 import api, { setAccessToken, clearAccessToken } from '../utils/api';
 
 const AuthContext = createContext();
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within AuthProvider');
-  return context;
-};
-
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      setAccessToken(token);
-      fetchUser();
-    } else {
-      setLoading(false);
-    }
-  }, []);
-
-  const fetchUser = async () => {
-    try {
-      const { data } = await api.get('/auth/me');
-      setUser(data);
-    } catch (error) {
-      console.error('Fetch user error:', error);
-      clearAccessToken();
-    } finally {
-      setLoading(false);
-    }
+  const register = async (name, email, password) => {
+    const res = await api.post('/auth/register', { name, email, password });
+    const { accessToken } = res.data;
+    setAccessToken(accessToken);
+    return res.data;
   };
 
   const login = async (email, password) => {
-    try {
-      // ✅ api already has withCredentials: true
-      const { data } = await api.post('/auth/login', { email, password });
-      setAccessToken(data.accessToken);
-      setUser(data.user);
-      return data;
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  const register = async (name, email, password) => {
-    try {
-      // ✅ api already has withCredentials: true
-      const { data } = await api.post('/auth/register', { name, email, password });
-      setAccessToken(data.accessToken);
-      setUser(data.user);
-      return data;
-    } catch (error) {
-      throw error;
-    }
+    const res = await api.post('/auth/login', { email, password });
+    const { accessToken } = res.data;
+    setAccessToken(accessToken);
+    return res.data;
   };
 
   const logout = async () => {
-    try {
-      await api.post('/auth/logout');
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      clearAccessToken();
-      setUser(null);
-    }
+    await api.post('/auth/logout');
+    clearAccessToken();
   };
 
   const googleLogin = () => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-    window.location.href = `${apiUrl}/auth/google`;
+    window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, googleLogin, setUser }}>
+    <AuthContext.Provider value={{ register, login, logout, googleLogin }}>
       {children}
     </AuthContext.Provider>
   );
 };
+
+export const useAuth = () => useContext(AuthContext);
