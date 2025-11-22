@@ -1,12 +1,16 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api', 
-  withCredentials: true
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  withCredentials: true, // ✅ CRITICAL: This sends cookies
+  headers: {
+    'Content-Type': 'application/json' // ✅ CRITICAL: This tells server it's JSON
+  }
 });
 
 let accessToken = localStorage.getItem('accessToken');
 
+// Request interceptor
 api.interceptors.request.use(
   (config) => {
     if (accessToken) {
@@ -17,6 +21,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Response interceptor
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -29,7 +34,7 @@ api.interceptors.response.use(
         const { data } = await axios.post(
           `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/auth/refresh`,
           {},
-          { withCredentials: true }
+          { withCredentials: true } // ✅ Include credentials for refresh
         );
 
         accessToken = data.accessToken;
