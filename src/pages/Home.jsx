@@ -104,7 +104,7 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900">
-      {/* Hero Section */}
+      
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-50"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 relative z-10">
@@ -146,7 +146,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Stats Section */}
+      
       <section className="py-16 bg-black bg-opacity-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
@@ -165,7 +165,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Features Section */}
+      
       <section id="features" className="py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -197,7 +197,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Quests Preview */}
+      
       <section id="quests" className="py-24 bg-black bg-opacity-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -242,7 +242,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Pricing Section */}
+      
       <section id="pricing" className="py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -297,7 +297,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
+      
       <section className="py-24 bg-gradient-to-r from-purple-600 to-pink-600">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
@@ -314,7 +314,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Footer */}
+      
       <footer className="bg-black bg-opacity-50 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8 mb-8">

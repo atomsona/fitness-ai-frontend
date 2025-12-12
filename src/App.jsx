@@ -13,7 +13,6 @@ import Quests from './pages/Quests.jsx';
 import Profile from './pages/Profile.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
 
-// Auth Success Handler - Fixed to properly handle Google OAuth redirect
 const AuthSuccess = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -24,16 +23,11 @@ const AuthSuccess = () => {
       const token = params.get('token');
       
       if (token) {
-        // Save token
         localStorage.setItem('accessToken', token);
-        
-        // Small delay to ensure token is saved
         setTimeout(() => {
-          // Redirect to dashboard
           window.location.href = '/dashboard';
         }, 100);
       } else {
-        // No token, redirect to login
         navigate('/login');
       }
     };

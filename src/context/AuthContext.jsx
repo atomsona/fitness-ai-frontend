@@ -14,19 +14,33 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      fetchUser();
-    } else {
-      setLoading(false);
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get('accessToken') || params.get('token');
+    if (urlToken) {
+      setAccessToken(urlToken);
+      (async () => {
+        try {
+          await fetchUser();
+        } catch (e) {
+          clearAccessToken();
+        }
+        const cleanUrl = window.location.origin + window.location.pathname + window.location.hash;
+        window.history.replaceState(null, '', cleanUrl);
+        window.location.replace('/dashboard');
+      })();
+      return;
     }
+
+    const token = localStorage.getItem('accessToken');
+    if (token) fetchUser();
+    else setLoading(false);
   }, []);
 
   const fetchUser = async () => {
     try {
       const { data } = await api.get('/auth');
       setUser(data);
-    } catch (error) {
+    } catch {
       clearAccessToken();
     } finally {
       setLoading(false);
@@ -48,14 +62,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    try {
-      await api.post('/auth/logout');
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      clearAccessToken();
-      setUser(null);
-    }
+    try { await api.post('/auth/logout'); } catch {}
+    finally { clearAccessToken(); setUser(null); }
   };
 
   const googleLogin = () => {
