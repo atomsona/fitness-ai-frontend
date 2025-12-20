@@ -16,12 +16,13 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const urlToken = params.get('accessToken') || params.get('token');
+
     if (urlToken) {
       setAccessToken(urlToken);
       (async () => {
         try {
           await fetchUser();
-        } catch (e) {
+        } catch {
           clearAccessToken();
         }
         const cleanUrl = window.location.origin + window.location.pathname + window.location.hash;
@@ -42,6 +43,7 @@ export const AuthProvider = ({ children }) => {
       setUser(data);
     } catch {
       clearAccessToken();
+      setUser(null);
     } finally {
       setLoading(false);
     }
@@ -70,8 +72,11 @@ export const AuthProvider = ({ children }) => {
     window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/auth/google`;
   };
 
+  // ✅ This is what Quest completion will call
+  const updateUser = (updatedUser) => setUser(updatedUser);
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, googleLogin, setUser }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, googleLogin, setUser, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

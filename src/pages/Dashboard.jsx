@@ -1,13 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { Trophy, Target, Zap, TrendingUp, Award, Clock } from 'lucide-react';
+import {
+  Trophy,
+  Target,
+  Zap,
+  TrendingUp,
+  Award,
+  Clock
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import api from '../utils/api';
 
 const Dashboard = () => {
-  const { user, setUser } = useAuth();
+  const { user } = useAuth();
   const [progress, setProgress] = useState([]);
-  const [quests, setQuests] = useState([]);
   const [stats, setStats] = useState({
     totalQuests: 0,
     completedQuests: 0,
@@ -17,28 +23,19 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchProgress();
-    fetchQuests();
   }, []);
 
   const fetchProgress = async () => {
     try {
       const { data } = await api.get('/quests/progress');
+      const progressData = Array.isArray(data?.progress) ? data.progress : [];
 
-      const progressData = data.progress || [];
       setProgress(progressData);
-
-      // Update user info
-      setUser(prev => ({
-        ...prev,
-        xp: data.xp,
-        level: data.level,
-        coins: data.coins,
-        completedQuests: progressData.map(p => p.quest._id)
-      }));
 
       const completed = progressData.filter(p => p.status === 'completed');
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
+
       const weeklyCompleted = completed.filter(
         p => p.completedAt && new Date(p.completedAt) >= weekAgo
       );
@@ -48,45 +45,23 @@ const Dashboard = () => {
         completedQuests: completed.length,
         weeklyQuests: weeklyCompleted.length
       });
-    } catch (error) {
-      console.error('Error fetching progress:', error);
-      setProgress([]);
-      setStats({ totalQuests: 0, completedQuests: 0, weeklyQuests: 0 });
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchQuests = async () => {
+  /* =========================
+     STRIPE UPGRADE HANDLER
+  ========================= */
+  const handleUpgrade = async () => {
     try {
-      const { data } = await api.get('/quests');
-      setQuests(data);
-    } catch (error) {
-      console.error('Error fetching quests:', error);
-    }
-  };
-
-  const handleCompleteQuest = async (questId) => {
-    try {
-      const { data } = await api.post(`/quests/${questId}/complete`);
-
-      setUser(prevUser => ({
-        ...prevUser,
-        xp: data.user.xp,
-        level: data.user.level,
-        coins: data.user.coins,
-        completedQuests: [...(prevUser.completedQuests || []), questId]
-      }));
-
-      const completedQuest = quests.find(q => q._id === questId);
-      setProgress(prev => [
-        ...prev,
-        { quest: completedQuest, status: 'completed', completedAt: new Date() }
-      ]);
-
-      alert(`Quest completed! +${data.rewards?.xp || 0} XP, +${data.rewards?.coins || 0} Coins`);
-    } catch (error) {
-      alert(error.response?.data?.message || 'Failed to complete quest');
+      const { data } = await api.post('/payment/create-checkout-session');
+      window.location.href = data.url;
+    } catch (err) {
+      console.error('Stripe error:', err);
+      alert('Failed to start payment');
     }
   };
 
@@ -94,37 +69,37 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-7xl mx-auto px-6 py-12">
 
-        {/* Welcome */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            Welcome back, {user?.name}! 👋
-          </h1>
-          <p className="text-gray-300">Here's your fitness progress</p>
-        </div>
+        <h1 className="text-4xl font-bold text-white mb-8">
+          Here&apos;s your fitness progress
+        </h1>
 
-        {/* Stats Cards */}
+        {/* STATS */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-gradient-to-br from-purple-600 to-pink-600">
+
+          <Card className="bg-gradient-to-br from-pink-500 to-purple-600">
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+              <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-purple-200 text-sm">Level</p>
-                  <p className="text-3xl font-bold text-white">{user?.level || 1}</p>
+                  <p className="text-sm text-pink-200">Level</p>
+                  <p className="text-3xl font-bold text-white">
+                    {user?.level || 1}
+                  </p>
                 </div>
-                <Trophy className="w-12 h-12 text-yellow-400" />
+                <Trophy className="text-yellow-300 w-10 h-10" />
               </div>
+
               <div className="mt-4">
-                <div className="flex justify-between text-xs text-purple-200 mb-1">
+                <div className="flex justify-between text-xs text-pink-200 mb-1">
                   <span>XP Progress</span>
-                  <span>{(user?.xp || 0) % 1000} / 1000</span>
+                  <span>{(user?.xp || 0) % 1000}/1000</span>
                 </div>
-                <div className="w-full bg-purple-900 bg-opacity-50 rounded-full h-2">
+                <div className="w-full bg-purple-900 rounded-full h-2">
                   <div
-                    className="bg-yellow-400 h-2 rounded-full transition-all duration-500"
+                    className="bg-yellow-400 h-2 rounded-full"
                     style={{ width: `${xpProgress}%` }}
-                  ></div>
+                  />
                 </div>
               </div>
             </CardContent>
@@ -132,203 +107,125 @@ const Dashboard = () => {
 
           <Card>
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">Total XP</p>
-                  <p className="text-3xl font-bold text-white">{user?.xp || 0}</p>
-                </div>
-                <Zap className="w-12 h-12 text-purple-400" />
-              </div>
+              <p className="text-gray-400 text-sm">Total XP</p>
+              <p className="text-3xl font-bold text-white">
+                {user?.xp || 0}
+              </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">Coins</p>
-                  <p className="text-3xl font-bold text-white">{user?.coins || 0}</p>
-                </div>
-                <div className="text-4xl">🪙</div>
-              </div>
+              <p className="text-gray-400 text-sm">Coins</p>
+              <p className="text-3xl font-bold text-white">
+                {user?.coins || 0}
+              </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">Completed</p>
-                  <p className="text-3xl font-bold text-white">{stats.completedQuests}</p>
-                </div>
-                <Target className="w-12 h-12 text-green-400" />
-              </div>
+              <p className="text-gray-400 text-sm">Completed</p>
+              <p className="text-3xl font-bold text-white">
+                {stats.completedQuests}
+              </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Premium Card */}
+        {/* UPGRADE BANNER */}
         {!user?.isPremium && (
-          <Card className="bg-gradient-to-r from-yellow-600 to-orange-600 mb-8">
-            <CardContent className="py-6 flex justify-between items-center">
-              <div>
-                <h3 className="text-2xl font-bold text-white mb-2">Upgrade to Premium 👑</h3>
-                <p className="text-yellow-100">Unlock AI coaching, premium quests, and exclusive rewards</p>
-              </div>
-              <button className="bg-white text-orange-600 px-6 py-3 rounded-full font-bold hover:bg-gray-100 transition">
-                Upgrade Now
-              </button>
-            </CardContent>
-          </Card>
+          <div className="bg-gradient-to-r from-yellow-600 to-orange-600 rounded-2xl p-6 mb-8 flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-bold text-white mb-1">
+                Upgrade to Premium 👑
+              </h2>
+              <p className="text-yellow-100">
+                Unlock AI coaching, premium quests, and exclusive rewards
+              </p>
+            </div>
+
+            <button
+              onClick={handleUpgrade}
+              className="bg-white text-orange-600 px-6 py-3 rounded-full font-bold hover:bg-gray-100 transition"
+            >
+              Upgrade Now
+            </button>
+          </div>
         )}
 
-        {/* Weekly Progress & Achievements */}
+        {/* WEEKLY PROGRESS */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Weekly Progress */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <TrendingUp className="w-6 h-6 mr-2 text-purple-400" />
+                <TrendingUp className="mr-2 text-purple-400" />
                 Weekly Progress
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-sm text-gray-400 mb-2">
-                    <span>Quests Completed</span>
-                    <span className="text-white font-semibold">{stats.weeklyQuests}</span>
-                  </div>
-                  <div className="w-full bg-gray-700 rounded-full h-3">
-                    <div
-                      className="bg-gradient-to-r from-purple-500 to-pink-500 h-3 rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min((stats.weeklyQuests / 7) * 100, 100)}%` }}
-                    ></div>
-                  </div>
-                </div>
-                <p className="text-gray-400 text-sm">
-                  {stats.weeklyQuests >= 7 ? 
-                    '🎉 Amazing! You completed your weekly goal!' : 
-                    `Complete ${7 - stats.weeklyQuests} more quests to reach your weekly goal`
-                  }
-                </p>
+              <div className="w-full bg-gray-700 rounded-full h-3 mb-2">
+                <div
+                  className="bg-purple-500 h-3 rounded-full"
+                  style={{
+                    width: `${Math.min((stats.weeklyQuests / 7) * 100, 100)}%`
+                  }}
+                />
               </div>
+              <p className="text-gray-400 text-sm">
+                {stats.weeklyQuests >= 7
+                  ? '🎉 Weekly goal achieved!'
+                  : `Complete ${7 - stats.weeklyQuests} more quests`}
+              </p>
             </CardContent>
           </Card>
 
-          {/* Recent Achievements */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Award className="w-6 h-6 mr-2 text-yellow-400" />
+                <Award className="mr-2 text-yellow-400" />
                 Recent Achievements
               </CardTitle>
             </CardHeader>
             <CardContent>
               {loading ? (
                 <p className="text-gray-400">Loading...</p>
-              ) : progress.filter(p => p.status === 'completed').slice(0, 3).length > 0 ? (
-                <div className="space-y-3">
-                  {progress.filter(p => p.status === 'completed').slice(0, 3).map((item, i) => (
-                    <div key={i} className="flex items-center space-x-3 p-3 bg-white bg-opacity-5 rounded-lg">
-                      <div className="bg-gradient-to-br from-purple-500 to-pink-500 p-2 rounded-lg">
-                        <Trophy className="w-5 h-5 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-white font-semibold">{item.quest?.title}</p>
-                        <p className="text-gray-400 text-sm">{new Date(item.completedAt).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
               ) : (
-                <p className="text-gray-400">No completed quests yet. Start your first quest!</p>
+                <p className="text-gray-400">
+                  No completed quests yet. Start your first quest!
+                </p>
               )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Recent Activity */}
+        {/* RECENT ACTIVITY */}
         <Card className="mt-8">
           <CardHeader>
             <CardTitle className="flex items-center">
-              <Clock className="w-6 h-6 mr-2 text-blue-400" />
+              <Clock className="mr-2 text-blue-400" />
               Recent Activity
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <p className="text-gray-400">Loading...</p>
-            ) : progress.length > 0 ? (
-              <div className="space-y-3">
-                {progress.slice(0, 5).map((item, i) => (
-                  <div key={i} className="flex items-center justify-between p-4 bg-white bg-opacity-5 rounded-lg hover:bg-opacity-10 transition">
-                    <div className="flex items-center space-x-4">
-                      <div className={`w-3 h-3 rounded-full ${
-                        item.status === 'completed' ? 'bg-green-400' : 
-                        item.status === 'in_progress' ? 'bg-yellow-400' : 
-                        'bg-gray-400'
-                      }`}></div>
-                      <div>
-                        <p className="text-white font-semibold">{item.quest?.title}</p>
-                        <p className="text-gray-400 text-sm">
-                          {item.status === 'completed' ? 'Completed' : 
-                           item.status === 'in_progress' ? 'In Progress' : 
-                           'Not Started'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-purple-400 font-semibold">+{item.quest?.xpReward} XP</p>
-                      <p className="text-gray-400 text-sm">+{item.quest?.coinReward} 🪙</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+            {progress.length === 0 ? (
+              <p className="text-gray-400">
+                No activity yet. Start your fitness journey!
+              </p>
             ) : (
-              <p className="text-gray-400">No activity yet. Start your fitness journey!</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Available Quests */}
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Target className="w-6 h-6 mr-2 text-green-400" />
-              Available Quests
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {quests.length === 0 ? (
-              <p className="text-gray-400">No quests available right now.</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {quests.map((quest) => {
-                  const isCompleted = user?.completedQuests?.includes(quest._id);
-                  return (
-                    <div
-                      key={quest._id}
-                      className={`p-4 rounded-lg bg-white bg-opacity-5 hover:bg-opacity-10 transition ${
-                        isCompleted ? 'opacity-60' : ''
-                      }`}
-                    >
-                      <h3 className="text-white font-semibold text-lg">{quest.title}</h3>
-                      <p className="text-gray-400 text-sm mb-2">{quest.description}</p>
-                      <p className="text-gray-300 text-sm">
-                        ⚡ {quest.xpReward} XP | 🪙 {quest.coinReward} Coins | ⏱ {quest.duration} min
-                      </p>
-                      <button
-                        className="mt-2 w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition disabled:opacity-50"
-                        disabled={isCompleted}
-                        onClick={() => handleCompleteQuest(quest._id)}
-                      >
-                        {isCompleted ? 'Completed ✓' : 'Start Quest'}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
+              progress.slice(0, 5).map((item, i) => (
+                <div
+                  key={i}
+                  className="flex justify-between p-3 bg-white/5 rounded-lg mb-2"
+                >
+                  <span className="text-white">
+                    {item.quest?.title}
+                  </span>
+                  <span className="text-purple-400">
+                    +{item.quest?.xpReward} XP
+                  </span>
+                </div>
+              ))
             )}
           </CardContent>
         </Card>

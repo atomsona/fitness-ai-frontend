@@ -1,13 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Filter } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import QuestCard from '../components/QuestCard';
 import { Button } from '../components/ui/button';
 import api from '../utils/api';
 
 const Quests = () => {
+  const location = useLocation();
+
   const [quests, setQuests] = useState([]);
-  const [filteredQuests, setFilteredQuests] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [filters, setFilters] = useState({
     type: 'all',
     difficulty: 'all',
@@ -16,65 +19,54 @@ const Quests = () => {
 
   const fetchQuests = async () => {
     try {
+      setLoading(true);
       const { data } = await api.get('/quests');
-      setQuests(data);
-    } catch (err) {
-      console.error(err);
+      setQuests(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error(e);
+      setQuests([]);
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ fetch on first load AND whenever user returns to this page
   useEffect(() => {
     fetchQuests();
-  }, []);
+    // location.key changes when navigating back from details
+  }, [location.key]);
 
-  useEffect(() => {
-    let q = [...quests];
-    if (filters.type !== 'all') q = q.filter(x => x.type === filters.type);
-    if (filters.difficulty !== 'all') q = q.filter(x => x.difficulty === filters.difficulty);
-    if (filters.category !== 'all') q = q.filter(x => x.category === filters.category);
-    setFilteredQuests(q);
+  const filteredQuests = useMemo(() => {
+    let out = [...quests];
+    if (filters.type !== 'all') out = out.filter(q => q.type === filters.type);
+    if (filters.difficulty !== 'all') out = out.filter(q => q.difficulty === filters.difficulty);
+    if (filters.category !== 'all') out = out.filter(q => q.category === filters.category);
+    return out;
   }, [quests, filters]);
-
-  const completeQuest = async (id) => {
-    try {
-      await api.post('/quests/complete', { questId: id });
-      fetchQuests();
-    } catch (err) {
-      alert('Failed to complete quest');
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
-        {/* HEADER */}
-        <div className="mb-10">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            Available Quests
-          </h1>
-          <p className="text-gray-300">
-            Choose your next challenge and earn rewards
-          </p>
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-white mb-2">Available Quests</h1>
+          <p className="text-gray-300">You always get 10 quests. Finish all to generate new ones.</p>
         </div>
 
-        {/* FILTERS */}
-        <div className="bg-white bg-opacity-5 backdrop-blur-md border border-white border-opacity-10 rounded-2xl p-6 mb-10">
+        {/* Filters */}
+        <div className="bg-white bg-opacity-5 backdrop-blur-sm border border-white border-opacity-10 rounded-2xl p-6 mb-8">
           <div className="flex items-center mb-4">
             <Filter className="w-5 h-5 text-purple-400 mr-2" />
             <h3 className="text-white font-semibold">Filters</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* TYPE */}
             <div>
               <label className="block text-gray-300 text-sm mb-2">Type</label>
               <select
                 value={filters.type}
-                onChange={e => setFilters({ ...filters, type: e.target.value })}
-                className="w-full px-4 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+                className="w-full px-4 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 <option value="all">All</option>
                 <option value="free">Free</option>
@@ -82,13 +74,12 @@ const Quests = () => {
               </select>
             </div>
 
-            {/* DIFFICULTY */}
             <div>
               <label className="block text-gray-300 text-sm mb-2">Difficulty</label>
               <select
                 value={filters.difficulty}
-                onChange={e => setFilters({ ...filters, difficulty: e.target.value })}
-                className="w-full px-4 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                onChange={(e) => setFilters({ ...filters, difficulty: e.target.value })}
+                className="w-full px-4 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 <option value="all">All</option>
                 <option value="Easy">Easy</option>
@@ -98,13 +89,12 @@ const Quests = () => {
               </select>
             </div>
 
-            {/* CATEGORY */}
             <div>
               <label className="block text-gray-300 text-sm mb-2">Category</label>
               <select
                 value={filters.category}
-                onChange={e => setFilters({ ...filters, category: e.target.value })}
-                className="w-full px-4 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+                className="w-full px-4 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 <option value="all">All</option>
                 <option value="strength">Strength</option>
@@ -117,36 +107,22 @@ const Quests = () => {
           </div>
         </div>
 
-        {/* QUESTS */}
         {loading ? (
-          <div className="text-center text-white text-xl py-20">
-            Loading quests...
-          </div>
+          <div className="text-center text-white text-xl py-12">Loading quests...</div>
         ) : filteredQuests.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredQuests.map(q => (
-              <QuestCard
-                key={q._id}
-                quest={q}
-                onComplete={() => completeQuest(q._id)}
-              />
+            {filteredQuests.map((quest) => (
+              <QuestCard key={quest._id} quest={quest} />
             ))}
           </div>
         ) : (
-          <div className="text-center py-20">
-            <p className="text-gray-400 text-lg mb-4">
-              No quests found with current filters
-            </p>
-            <Button
-              onClick={() =>
-                setFilters({ type: 'all', difficulty: 'all', category: 'all' })
-              }
-            >
+          <div className="text-center py-12">
+            <p className="text-gray-400 text-lg mb-4">No quests found with current filters</p>
+            <Button onClick={() => setFilters({ type: 'all', difficulty: 'all', category: 'all' })}>
               Clear Filters
             </Button>
           </div>
         )}
-
       </div>
     </div>
   );
