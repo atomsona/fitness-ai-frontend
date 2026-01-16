@@ -1,235 +1,194 @@
-import React, { useEffect, useState } from 'react';
-import {
-  Trophy,
-  Target,
-  Zap,
-  TrendingUp,
-  Award,
-  Clock
-} from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Crown, Target, TrendingUp, Zap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import api from '../utils/api';
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const [progress, setProgress] = useState([]);
-  const [stats, setStats] = useState({
-    totalQuests: 0,
-    completedQuests: 0,
-    weeklyQuests: 0
-  });
+  const [stats, setStats] = useState({ xp: 0, coins: 0, level: 1, completed: 0 });
   const [loading, setLoading] = useState(true);
 
+  const profileComplete = useMemo(() => {
+    const profile = user?.fitnessProfile;
+    return !!profile && Number(profile.age) > 0 && Number(profile.weight) > 0 && Number(profile.height) > 0;
+  }, [user]);
+
   useEffect(() => {
-    fetchProgress();
+    const load = async () => {
+      try {
+        const { data } = await api.get('/quests/progress');
+        setStats({
+          xp: data?.xp ?? 0,
+          coins: data?.coins ?? 0,
+          level: data?.level ?? 1,
+          completed: data?.completed ?? 0,
+        });
+      } catch {
+        setStats({ xp: 0, coins: 0, level: 1, completed: 0 });
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
   }, []);
 
-  const fetchProgress = async () => {
-    try {
-      const { data } = await api.get('/quests/progress');
-      const progressData = Array.isArray(data?.progress) ? data.progress : [];
-
-      setProgress(progressData);
-
-      const completed = progressData.filter(p => p.status === 'completed');
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-
-      const weeklyCompleted = completed.filter(
-        p => p.completedAt && new Date(p.completedAt) >= weekAgo
-      );
-
-      setStats({
-        totalQuests: progressData.length,
-        completedQuests: completed.length,
-        weeklyQuests: weeklyCompleted.length
-      });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+  const xpForNextLevel = (level) => {
+    const tiers = [1000, 1250, 1500, 2000, 2500];
+    if (level <= tiers.length) return tiers[level - 1];
+    return 2500 + (level - tiers.length) * 500;
   };
 
-  /* =========================
-     STRIPE UPGRADE HANDLER
-  ========================= */
-  const handleUpgrade = async () => {
-    try {
-      const { data } = await api.post('/payment/create-checkout-session');
-      window.location.href = data.url;
-    } catch (err) {
-      console.error('Stripe error:', err);
-      alert('Failed to start payment');
+  const levelFromXp = (xpTotal) => {
+    let level = 1;
+    let remaining = Math.max(0, xpTotal || 0);
+    while (remaining >= xpForNextLevel(level) && level < 999) {
+      remaining -= xpForNextLevel(level);
+      level += 1;
     }
+    return { level, remaining, next: xpForNextLevel(level) };
   };
 
-  const xpProgress = ((user?.xp || 0) % 1000) / 10;
+  const xpState = levelFromXp(stats.xp || 0);
+  const xpProgress = Math.min((xpState.remaining / xpState.next) * 100, 100);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900">
-      <div className="max-w-7xl mx-auto px-6 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 text-white" style={{ fontFamily: 'var(--font-body)' }}>
+      <style>
+        {`
+          @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Work+Sans:wght@400;500;600&display=swap');
+          :root { --font-display: 'Space Grotesk', ui-sans-serif; --font-body: 'Work Sans', ui-sans-serif; }
+          .font-display { font-family: var(--font-display); }
+        `}
+      </style>
 
-        <h1 className="text-4xl font-bold text-white mb-8">
-          Here&apos;s your fitness progress
-        </h1>
+      <div className="max-w-6xl mx-auto px-6 py-12">
+        <div className="flex flex-wrap items-end justify-between gap-6">
+          <div>
+            <h1 className="font-display text-3xl md:text-4xl font-bold">
+              Welcome back{user?.name ? `, ${user.name}` : ''}.
+            </h1>
+            <p className="text-white/60 mt-2">
+              Your next quest board is waiting. Keep your momentum steady.
+            </p>
+          </div>
+          <Link to="/quests" className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-fuchsia-500 to-cyan-500 px-5 py-2 text-sm font-semibold">
+            View quests <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
 
-        {/* STATS */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-
-          <Card className="bg-gradient-to-br from-pink-500 to-purple-600">
+        <div className="grid gap-6 md:grid-cols-4 mt-10">
+          <Card className="bg-gradient-to-br from-purple-600 to-pink-600 border-none">
             <CardContent className="pt-6">
-              <div className="flex justify-between items-center">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-pink-200">Level</p>
-                  <p className="text-3xl font-bold text-white">
-                    {user?.level || 1}
-                  </p>
+                  <div className="text-white/70 text-xs">Level</div>
+                  <div className="text-3xl font-bold">{xpState.level}</div>
                 </div>
-                <Trophy className="text-yellow-300 w-10 h-10" />
+                <Crown className="w-8 h-8 text-yellow-300" />
               </div>
-
               <div className="mt-4">
-                <div className="flex justify-between text-xs text-pink-200 mb-1">
-                  <span>XP Progress</span>
-                  <span>{(user?.xp || 0) % 1000}/1000</span>
+                <div className="flex items-center justify-between text-xs text-white/70">
+                  <span>XP progress</span>
+                  <span>{xpState.remaining}/{xpState.next}</span>
                 </div>
-                <div className="w-full bg-purple-900 rounded-full h-2">
-                  <div
-                    className="bg-yellow-400 h-2 rounded-full"
-                    style={{ width: `${xpProgress}%` }}
-                  />
+                <div className="mt-2 h-2 rounded-full bg-black/30">
+                  <div className="h-2 rounded-full bg-yellow-300" style={{ width: `${xpProgress}%` }} />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white/5 border-white/10 backdrop-blur">
             <CardContent className="pt-6">
-              <p className="text-gray-400 text-sm">Total XP</p>
-              <p className="text-3xl font-bold text-white">
-                {user?.xp || 0}
-              </p>
+              <div className="text-white/60 text-xs">Total XP</div>
+              <div className="text-3xl font-bold mt-2">{stats.xp}</div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white/5 border-white/10 backdrop-blur">
             <CardContent className="pt-6">
-              <p className="text-gray-400 text-sm">Coins</p>
-              <p className="text-3xl font-bold text-white">
-                {user?.coins || 0}
-              </p>
+              <div className="text-white/60 text-xs">Coins</div>
+              <div className="text-3xl font-bold mt-2">{stats.coins}</div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white/5 border-white/10 backdrop-blur">
             <CardContent className="pt-6">
-              <p className="text-gray-400 text-sm">Completed</p>
-              <p className="text-3xl font-bold text-white">
-                {stats.completedQuests}
-              </p>
+              <div className="text-white/60 text-xs">Completed</div>
+              <div className="text-3xl font-bold mt-2">{stats.completed}</div>
             </CardContent>
           </Card>
         </div>
 
-        {/* UPGRADE BANNER */}
-        {!user?.isPremium && (
-          <div className="bg-gradient-to-r from-yellow-600 to-orange-600 rounded-2xl p-6 mb-8 flex justify-between items-center">
-            <div>
-              <h2 className="text-2xl font-bold text-white mb-1">
-                Upgrade to Premium 👑
-              </h2>
-              <p className="text-yellow-100">
-                Unlock AI coaching, premium quests, and exclusive rewards
-              </p>
-            </div>
-
-            <button
-              onClick={handleUpgrade}
-              className="bg-white text-orange-600 px-6 py-3 rounded-full font-bold hover:bg-gray-100 transition"
-            >
-              Upgrade Now
-            </button>
-          </div>
-        )}
-
-        {/* WEEKLY PROGRESS */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card>
+        <div className="grid gap-6 lg:grid-cols-2 mt-10">
+          <Card className="bg-white/5 border-white/10 backdrop-blur">
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <TrendingUp className="mr-2 text-purple-400" />
-                Weekly Progress
+              <CardTitle className="flex items-center gap-2">
+                <Target className="w-5 h-5 text-purple-200" />
+                Next steps
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="w-full bg-gray-700 rounded-full h-3 mb-2">
-                <div
-                  className="bg-purple-500 h-3 rounded-full"
-                  style={{
-                    width: `${Math.min((stats.weeklyQuests / 7) * 100, 100)}%`
-                  }}
-                />
+            <CardContent className="space-y-4">
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-semibold">Complete your fitness profile</div>
+                    <div className="text-white/60 text-sm">Improves quest personalization.</div>
+                  </div>
+                  <Link to="/profile" className="text-sm text-white/80">
+                    {profileComplete ? 'Done' : 'Finish'} <ArrowRight className="inline w-4 h-4" />
+                  </Link>
+                </div>
               </div>
-              <p className="text-gray-400 text-sm">
-                {stats.weeklyQuests >= 7
-                  ? '🎉 Weekly goal achieved!'
-                  : `Complete ${7 - stats.weeklyQuests} more quests`}
-              </p>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-semibold">Generate your first quest board</div>
+                    <div className="text-white/60 text-sm">A 10-minute set to start the week.</div>
+                  </div>
+                  <Link to="/quests" className="text-sm text-white/80">
+                    Open <ArrowRight className="inline w-4 h-4" />
+                  </Link>
+                </div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <div className="flex items-center gap-3 text-white/70">
+                  <Zap className="w-5 h-5 text-green-300" />
+                  Keep a 3-day streak for a bonus quest.
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white/5 border-white/10 backdrop-blur">
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <Award className="mr-2 text-yellow-400" />
-                Recent Achievements
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-pink-300" />
+                This week
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-3">
               {loading ? (
-                <p className="text-gray-400">Loading...</p>
+                <div className="text-white/60">Loading your week...</div>
               ) : (
-                <p className="text-gray-400">
-                  No completed quests yet. Start your first quest!
-                </p>
+                <>
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                    <div className="text-sm text-white/60">Focus</div>
+                    <div className="font-semibold mt-1">Strength + mobility split</div>
+                    <div className="text-white/60 text-sm mt-2">3 short sessions, 1 recovery day.</div>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                    <div className="text-sm text-white/60">Suggested quest</div>
+                    <div className="font-semibold mt-1">Posture Reset (8 min)</div>
+                    <div className="text-white/60 text-sm mt-2">Low effort, high return.</div>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
         </div>
-
-        {/* RECENT ACTIVITY */}
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Clock className="mr-2 text-blue-400" />
-              Recent Activity
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {progress.length === 0 ? (
-              <p className="text-gray-400">
-                No activity yet. Start your fitness journey!
-              </p>
-            ) : (
-              progress.slice(0, 5).map((item, i) => (
-                <div
-                  key={i}
-                  className="flex justify-between p-3 bg-white/5 rounded-lg mb-2"
-                >
-                  <span className="text-white">
-                    {item.quest?.title}
-                  </span>
-                  <span className="text-purple-400">
-                    +{item.quest?.xpReward} XP
-                  </span>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
       </div>
     </div>
   );

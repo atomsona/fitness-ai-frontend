@@ -44,23 +44,45 @@ function App() {
     <Router>
       <AuthProvider>
         <Navbar />
-
         <Routes>
+          {/* Public */}
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/auth-success" element={<AuthSuccess />} />
 
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          {/* Protected */}
+          <Route
+            path="/dashboard"
+            element={<ProtectedRoute><Dashboard /></ProtectedRoute>}
+          />
 
-          <Route path="/quests" element={<ProtectedRoute><Quests /></ProtectedRoute>} />
-          <Route path="/quests/:id" element={<ProtectedRoute><QuestDetails /></ProtectedRoute>} />
+          <Route
+            path="/quests"
+            element={<ProtectedRoute><Quests /></ProtectedRoute>}
+          />
 
-          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          {/* ✅ details page */}
+          <Route
+            path="/quests/:id"
+            element={<ProtectedRoute><QuestDetails /></ProtectedRoute>}
+          />
 
-          <Route path="/payment-result" element={<ProtectedRoute><PaymentResult /></ProtectedRoute>} />
+          <Route
+            path="/profile"
+            element={<ProtectedRoute><Profile /></ProtectedRoute>}
+          />
 
-          <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+          <Route
+            path="/payment-result"
+            element={<ProtectedRoute><PaymentResult /></ProtectedRoute>}
+          />
+
+          {/* Admin */}
+          <Route
+            path="/admin/dashboard"
+            element={<AdminRoute><AdminDashboard /></AdminRoute>}
+          />
         </Routes>
       </AuthProvider>
     </Router>
